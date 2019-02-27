@@ -21,11 +21,10 @@ We can manipulate 3D face shape in expression and identity code space.
 Please download [FaceWareHouse](http://kunzhou.net/zjugaps/facewarehouse/) dataset.
 
 ### Requirements
-#### Basic Environment
+#### 1. Basic Environment
 tensorflow-gpu = 1.9.0
-
 Keras = 2.2.2
-#### Requirements for Data  Processing (About Deformation Representation Feature)
+#### 2. Requirements for Data  Processing (About Deformation Representation Feature)
 1.  We provide a python interface for obtaining ***Deformation Representation (DR) Feature***. Code are avaliable at [Here](https://github.com/QianyiWu/get_dr_py) to generate DR feature for each obj file by specific one reference mesh. After that, you can change the data_path and data_format in `src/data_utils.py`.
 
 2. To recover mesh from DR feature, you need to compile [get_mesh](https://github.com/QianyiWu/get_mesh_py_API), and replace the `get_mesh.cpython-36m-x86_64-linux-gnu.so` in `src` folder.
@@ -63,8 +62,6 @@ You can test on each branch and the whole framework like
 ```bash
 main.py -m fusion_dr -l -t
 ```
-It will generate 
-
 Note that we also provided our pretrained model on [Pretrained Model](https://drive.google.com/open?id=1LxxNY7wbjMXwrRdYJ4hJfXhg9ETAyIuQ)
 
 ### Evaluation
