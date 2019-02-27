@@ -32,6 +32,7 @@ After all requirements are satisfied, you can use following command to train and
 run `python src/data_utils.py` to generate training and testing data for 3D face DR learning
 
 >origin Meanface DR feature can be download at [Google Drive](https://drive.google.com/open?id=1GgCKnKRrLR8r51Pw_TBqDHK8vdu6Oj4M)
+>
 >if you train the model on your own dataset(for which topology is different from FWH mesh), you have to recompute `Mean_Face.obj` and all 47 expressions on mean face as mentioned in our paper and regenerate the `FWH_adj_matrix.npz` in `data/disentagle` folder using `src/igl_test.py`
 >
 >we will add scripts for computation of mean_face and method of interpolation mentioned in our paper soon
