@@ -83,3 +83,6 @@ Please cite the following papers if it helps your research:
           booktitle={IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
           year={2019},
     }
+
+# Acknowledgement
+GCN part code was inspired by https://github.com/tkipf/keras-gcn.
