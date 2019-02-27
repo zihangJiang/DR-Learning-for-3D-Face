@@ -3,8 +3,9 @@
 This repository is the implementation of our CVPR 2019 paper <a href="https://arxiv.org/abs/1902.09887">Disentangled Representation Learning for 3D Face Shape</a>
 
 Authors: [Zihang Jiang](home.ustc.edu.cn/~jzh0103/) [Qianyi Wu](https://wuqianyi.top/), [Keyu Chen](https://kychern.github.io/) and [Juyong Zhang](http://staff.ustc.edu.cn/~juyong/) .
-
-<img src = "Pict/manifold.png" height = "250px"/>
+<p align="center">
+<img src = "Pict/manifold.png" height = "400px"/>
+</p>
 
 # Our Proposed Framework
 
@@ -38,7 +39,7 @@ Run following command to generate training and testing data for 3D face DR learn
 ```bash
 python src/data_utils.py
 ```
-We have provided **Meanface DR feature** we used in this project on [here](https://drive.google.com/open?id=1GgCKnKRrLR8r51Pw_TBqDHK8vdu6Oj4M).
+We have provided **DR feature of expression mesh on Meanface ** we used in this project on [here](https://drive.google.com/open?id=1GgCKnKRrLR8r51Pw_TBqDHK8vdu6Oj4M).
 
 
 Run this command to pretrain identity branch
