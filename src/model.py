@@ -741,7 +741,7 @@ class gcn_model(object):
                     for _ in range(5):
                         err_total =self.train_func([people_with_emotion, people_exp, people_neutral_face])
                     if err_total[0] > 0.06:
-                        print('fuck data')
+                        print('bad data')
                         for _ in range(10):
                             err_total =self.train_func([people_with_emotion, people_exp, people_neutral_face])
                 t = np.random.randint(1, 46)
