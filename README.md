@@ -1,6 +1,6 @@
 # Disentangled Representation Learning for 3D Face Shape
 
-This repository is the implementation of our CVPR 2019 paper <a href="https://arxiv.org/abs/1902.09887">Disentangled Representation Learning for 3D Face Shape</a>
+This repository is the implementation of our CVPR 2019 paper <a href="https://arxiv.org/abs/1902.09887">"Disentangled Representation Learning for 3D Face Shape"</a>
 
 Authors: [Zihang Jiang](home.ustc.edu.cn/~jzh0103/) ,[Qianyi Wu](https://wuqianyi.top/), [Keyu Chen](https://kychern.github.io/) and [Juyong Zhang](http://staff.ustc.edu.cn/~juyong/) .
 <p align="center">
@@ -72,7 +72,7 @@ The `measurement.py` and `STED` folder is for computation of numerical result me
 1. if you train the model on your own dataset(for which topology is different from FaceWarehouse mesh), you have to recompute `Mean_Face.obj` and expression meshes on mean face as mentioned in our paper and regenerate the `FWH_adj_matrix.npz` in `data/disentagle` folder using `src/igl_test.py`.
 2. We will release srcipts for data augmentation method metioned in our paper. Once you have the augmented interpolated data in `data/disentangle/Interpolated_results` you can uncomment <a href='https://github.com/zihangJiang/DR-Learning-for-3D-Face/blob/eb66a63c34d4ca65b37808f040e56b867b19c245/main.py#L115'>here</a> in `main.py` to enable use of data augmentation. 
 3. Currently we have fully tested this package on Ubuntu 16.04 LTS environment with CUDA 9.0. Windows and MacOS are not ensured working.
-
+4. If you have comments or questions, please contact Zihang Jiang (jzh0103@mail.ustc.edu.cn), Qianyi Wu (wqy9619@mail.ustc.edu.cn), Keyu Chen (cky95@mail.ustc.edu.cn).
 # Citation
 Please cite the following papers if it helps your research: 
 
