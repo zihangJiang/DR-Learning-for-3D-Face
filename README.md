@@ -68,7 +68,7 @@ Note that we also provided our pretrained model on [Pretrained Model](https://dr
 ### Evaluation
 The `measurement.py` and `STED` folder is for computation of numerical result mentioned in our paper, including two reconstruction metrics and two decompostion metrics.
 
-### Notification
+### Notes
 1. if you train the model on your own dataset(for which topology is different from FaceWarehouse mesh), you have to recompute `Mean_Face.obj` and expression meshes on mean face as mentioned in our paper and regenerate the `FWH_adj_matrix.npz` in `data/disentagle` folder using `src/igl_test.py`.
 2. We will release srcipts for data augmentation method metioned in our paper. Once you have the augmented interpolated data in `data/disentangle/Interpolated_results` you can uncomment <a href='https://github.com/zihangJiang/DR-Learning-for-3D-Face/blob/eb66a63c34d4ca65b37808f040e56b867b19c245/main.py#L115'>here</a> in `main.py` to enable use of data augmentation. 
 3. Currently we have fully tested this package on Ubuntu 16.04 LTS environment with CUDA 9.0. Windows and MacOS are not ensured working.
