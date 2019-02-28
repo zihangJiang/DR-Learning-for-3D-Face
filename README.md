@@ -39,7 +39,7 @@ Run following command to generate training and testing data for 3D face DR learn
 ```bash
 python src/data_utils.py
 ```
-We have provided **DR feature of expression mesh on Meanface ** we used in this project on [here](https://drive.google.com/open?id=1GgCKnKRrLR8r51Pw_TBqDHK8vdu6Oj4M).
+We have provided **DR feature of expression mesh on Meanface** we used in this project on [here](https://drive.google.com/open?id=1GgCKnKRrLR8r51Pw_TBqDHK8vdu6Oj4M).
 
 
 Run this command to pretrain identity branch
