@@ -34,7 +34,7 @@ def sted_compute(src_point_array, tar_point_array):
 	# print('edge time cost {}'.format(time.time()-t))
 	
 	# compute relative edge difference, ed
-	ed = np.abs(src_el-tar_el)//src_el
+	ed = np.abs(src_el-tar_el)/src_el
 
 	# compute weights of edge
 	with open('velist.pkl', 'rb') as f:
@@ -75,7 +75,7 @@ def sted_compute_advanced_back(src_point_array, tar_point_array):
 	# print('edge time cost {}'.format(time.time()-t))
 	
 	# compute relative edge difference, ed
-	ed = np.abs(src_el-tar_el)//src_el
+	ed = np.abs(src_el-tar_el)/src_el
 
 	# compute weights of edge
 #	with open('velist.pkl', 'rb') as f:
@@ -117,7 +117,7 @@ def sted_compute_advanced(src_point_array, tar_point_array):
     	
     per_vertex_sted=[]
 	# compute relative edge difference, ed
-    ed = np.abs(src_el-tar_el)//src_el
+    ed = np.abs(src_el-tar_el)/src_el
 
 	# compute weights of edge
 #	with open('velist.pkl', 'rb') as f:
