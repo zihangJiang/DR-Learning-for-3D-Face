@@ -63,7 +63,7 @@ You can test on each branch and the whole framework like
 ```bash
 main.py -m fusion_dr -l -t
 ```
-Note that we also provided our pretrained model on [Pretrained Model](https://drive.google.com/open?id=1LxxNY7wbjMXwrRdYJ4hJfXhg9ETAyIuQ)
+Note that we also provided our pretrained model on [Google Drive](https://drive.google.com/open?id=1LxxNY7wbjMXwrRdYJ4hJfXhg9ETAyIuQ)
 
 ### Evaluation
 The `measurement.py` and `STED` folder is for computation of numerical result mentioned in our paper, including two reconstruction metrics and two decompostion metrics.
