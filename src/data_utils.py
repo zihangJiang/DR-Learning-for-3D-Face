@@ -151,7 +151,7 @@ def concate_data(data_path,data_format):
         whole_data = np.vstack((np.fromfile(os.path.join(data_path, data_format.format(j, i))) - cross_id for i in range(47)))
         np.save('../data/disentangle/test_data/Feature{}'.format(j),whole_data)
         test_data.append(whole_data)
-    np.save('../data/disentangle/test_data',np.vstack(train_data))
+    np.save('../data/disentangle/test_data',np.vstack(test_data))
     train_data.extend(test_data)
     return np.vstack(train_data)
      
