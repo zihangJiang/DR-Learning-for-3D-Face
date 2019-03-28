@@ -25,6 +25,7 @@ Please download [FaceWareHouse](http://kunzhou.net/zjugaps/facewarehouse/) datas
 #### 1. Basic Environment
 tensorflow-gpu = 1.9.0
 Keras = 2.2.2
+openmesh
 #### 2. Requirements for Data  Processing (About Deformation Representation Feature)
 1.  We provide a python interface for obtaining ***Deformation Representation (DR) Feature***. Code are avaliable at [Here](https://github.com/QianyiWu/get_dr_py) to generate DR feature for each obj file by specific one reference mesh. After that, you can change the data_path and data_format in `src/data_utils.py`.
 
@@ -61,7 +62,7 @@ python main.py -m fusion_dr -e 20
 ### Testing
 You can test on each branch and the whole framework like 
 ```bash
-main.py -m fusion_dr -l -t
+python main.py -m fusion_dr -l -t
 ```
 Note that we also provided our pretrained model on [Google Drive](https://drive.google.com/open?id=1LxxNY7wbjMXwrRdYJ4hJfXhg9ETAyIuQ)
 
@@ -70,7 +71,7 @@ The `measurement.py` and `STED` folder is for computation of numerical result me
 
 ### Notes
 1. if you train the model on your own dataset(for which topology is different from FaceWarehouse mesh), you have to recompute `Mean_Face.obj` and expression meshes on mean face as mentioned in our paper and regenerate the `FWH_adj_matrix.npz` in `data/disentagle` folder using `src/igl_test.py`.
-2. We will release srcipts for data augmentation method metioned in our paper. Once you have the augmented interpolated data in `data/disentangle/Interpolated_results` you can uncomment <a href='https://github.com/zihangJiang/DR-Learning-for-3D-Face/blob/eb66a63c34d4ca65b37808f040e56b867b19c245/main.py#L115'>here</a> in `main.py` to enable use of data augmentation. 
+2. We will release srcipts for data augmentation method metioned in our paper. You could put the augmented interpolated data in `data/disentangle/Interpolated_results`  
 3. Currently we have fully tested this package on Ubuntu 16.04 LTS environment with CUDA 9.0. Windows and MacOS are not ensured working.
 4. Errors like `Unknown CMake command "pybind11_add_module"` you may encounter while building [get_mesh] and [get_dr] can be solved by 
 ```bash
