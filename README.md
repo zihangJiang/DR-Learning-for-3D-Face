@@ -27,11 +27,11 @@ tensorflow-gpu = 1.9.0
 
 Keras = 2.2.2
 
-openmesh
+openmesh (both python version which can be installed through `pip install openmesh`, and [compiled version](https://www.openmesh.org/download/) are required) 
 
 ##### 1.5
 
-For convenience, we included repos for  [get_dr] and [get_mesh] in third party folder and provided scripts for easy install. See readme in third party folder for detail.
+For convenience, we included repos for  [get_dr](https://github.com/zihangJiang/DR-Learning-for-3D-Face/tree/master/third_party/get_dr_py) and [get_mesh](https://github.com/zihangJiang/DR-Learning-for-3D-Face/tree/master/third_party/get_mesh_py) in third party folder and provided scripts for easy install. See [readme](https://github.com/zihangJiang/DR-Learning-for-3D-Face/blob/master/third_party/README.md) in third party folder for detail.
 
 #### 2. Requirements for Data  Processing (About Deformation Representation Feature)
 
