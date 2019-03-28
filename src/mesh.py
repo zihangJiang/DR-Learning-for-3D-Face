@@ -244,7 +244,7 @@ def V2M(array, filename):
     # read reference mesh
     V = igl.eigen.MatrixXd()
     F = igl.eigen.MatrixXi()
-    igl.readOBJ('/raid/jzh/Featuredisentangle/data/disentangle/Mean_Face.obj',V,F)
+    igl.readOBJ('data/disentangle/Mean_Face.obj',V,F)
     #igl.readOBJ('/home/jzh/Featuredisentangle/src/Mean_Face.obj',V,F)
     # read dat file and add to V matrix, then write mesh
     tar_v = array.copy()#np.fromfile('0_1008.dat')
@@ -252,7 +252,7 @@ def V2M(array, filename):
     new_v = p2e(tar_v)
     igl.writeOBJ(filename,new_v+V,F)
     
-def V2M2(array, filename, ref_name = '/raid/jzh/Featuredisentangle/data/disentangle/Mean_Face.obj', v_num = 11510):
+def V2M2(array, filename, ref_name = 'data/disentangle/Mean_Face.obj', v_num = 11510):
     def p2e(m):
         if isinstance(m, np.ndarray):
             if not (m.flags['C_CONTIGUOUS'] or m.flags['F_CONTIGUOUS']):
@@ -295,7 +295,7 @@ def V2M2(array, filename, ref_name = '/raid/jzh/Featuredisentangle/data/disentan
 
 
 def obj2dat_vertex(filename):
-    ref_name = '/raid/jzh/Featuredisentangle/data/disentangle/Mean_Face.obj'
+    ref_name = 'data/disentangle/Mean_Face.obj'
     V= igl.eigen.MatrixXd()
     F= igl.eigen.MatrixXi()
     igl.readOBJ(ref_name,V,F)

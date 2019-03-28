@@ -539,7 +539,7 @@ class disentangle_model_vae_exp(gcn_dis_model):
         self.decoder.save_weights(('model/gcn_vae_exp_model/decoder_exp_{}{}.h5').format(self.prefix, self.suffix))
         
     def load_models(self):
-        self.gcn_vae_exp.load_weights(('model/gcn_vae_exp{}{}.h5').format(self.prefix, self.suffix))
+        self.gcn_vae_exp.load_weights(('model/gcn_vae_exp_model/gcn_vae_exp{}{}.h5').format(self.prefix, self.suffix))
 
     def train(self, epoch):
         data_array = np.load(('data/{}/train_data.npy').format(self.prefix))
@@ -976,6 +976,32 @@ class gcn_model(object):
         save_models()
         
     def test(self, id_net, exp_net, filename='test', people_id=142):
+        # id operator
+        def I(z):
+            return id_net.decoder(id_net.encoder(z)[2])
+        def E(z):
+            return exp_net.decoder(exp_net.encoder(z)[2])
+        def F(y,x):
+            return self.gcn_comp([y,x])
+        
+        '''
+         1. I(z_{i,k}) - y_i = 0
+         2. E(z_{i,k}) - x_k = 0
+         3. E(I(z_{i,k})) = I(E(z_{i,k})) = 0
+         4. F(E(z_{i,k}),I(z_{i,k}) - z_{i,k} = 0
+        '''
+        z = self.real
+
+        our_model = Model(z,[I(z), E(z), F(I(z),E(z))])
+
+
+        def load_models():
+            our_model.load_weights(('model/our_model/our_model{}{}.h5').format(self.prefix, self.suffix))
+        def save_models():
+            our_model.save_weights(('model/our_model/our_model{}{}.h5').format(self.prefix, self.suffix))
+
+        if self.load:
+            load_models()
         #self.load_models()
         data = np.load(('data/{}/{}_data/Feature{}.npy').format(self.prefix, filename, people_id))
         data_array = data.copy()
@@ -1006,6 +1032,33 @@ class gcn_model(object):
             V2M2(get_mesh(ref_name, data_recover(feature_id[i])), ('data/mesh/id_{}_{}.obj').format(self.prefix, i))
             
     def test_change(self, id_net, exp_net, filename='test', people_id=142):
+        # id operator
+        def I(z):
+            return id_net.decoder(id_net.encoder(z)[2])
+        def E(z):
+            return exp_net.decoder(exp_net.encoder(z)[2])
+        def F(y,x):
+            return self.gcn_comp([y,x])
+        
+        '''
+         1. I(z_{i,k}) - y_i = 0
+         2. E(z_{i,k}) - x_k = 0
+         3. E(I(z_{i,k})) = I(E(z_{i,k})) = 0
+         4. F(E(z_{i,k}),I(z_{i,k}) - z_{i,k} = 0
+        '''
+        z = self.real
+
+        our_model = Model(z,[I(z), E(z), F(I(z),E(z))])
+
+
+        def load_models():
+            our_model.load_weights(('model/our_model/our_model{}{}.h5').format(self.prefix, self.suffix))
+        def save_models():
+            our_model.save_weights(('model/our_model/our_model{}{}.h5').format(self.prefix, self.suffix))
+
+        if self.load:
+            load_models()
+
         import shutil, os
         shutil.rmtree('data/mesh')
         os.mkdir('data/mesh')

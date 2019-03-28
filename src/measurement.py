@@ -41,7 +41,7 @@ def compute_distance_whole(src, tar, index):
 	distance_no_rigid = np.mean(np.sqrt(np.sum(np.square(point_array_tar-point_array_src),axis=1)))
 	return distance_mean, distance_max,distance_no_rigid
 
-def compute_distance(src, tar, index = np.loadtxt('/raid/jzh/FD/src/front_part_v.txt', dtype=int)):
+def compute_distance(src, tar, index = None):#np.loadtxt('src/front_part_v.txt', dtype=int)):
 	'''
 	compute the L2 distance of average distance between 2 meshes on each vertice
 	'''
@@ -85,7 +85,7 @@ def write_align_mesh(src, tar, filename, index = None):
 
 def cal_distance_in_file(src_file_format, tar_file_format, vis = False):
     avg_dis=[]
-    index=np.loadtxt('/raid/jzh/FD/src/front_part_v.txt',dtype=int)
+    index=np.loadtxt('src/front_part_v.txt',dtype=int)
     for i in range(141,151):
         for j in range(47):
             if j in []:

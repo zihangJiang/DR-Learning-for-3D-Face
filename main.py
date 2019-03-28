@@ -37,7 +37,11 @@ suffix = args.suffix
 people_id = int(args.test_people_id)
 # filename prefix
 prefix = mode
-
+if not train:
+    try:
+        os.makedirs('data/mesh')
+    except:
+        pass
 #if not train:
 if True:
     import tensorflow as tf
@@ -67,9 +71,9 @@ if mode == 'fusion_dr':
     prefix = 'disentangle'
     print('Loading {} model'.format(mode))
     if suffix == '':
-        #suffix = 'fusion_dr'
+        suffix = 'fusion_dr'
         #suffix = 'fusion7550'
-        suffix = 'fusion_no'
+        #suffix = 'fusion_no'
     # VAE network
     
     if train:
@@ -78,8 +82,7 @@ if mode == 'fusion_dr':
         suffix = 'gcn_vae_exp'
         exp_net = disentangle_model_vae_exp(input_dim, prefix, suffix, l_rate, True, feature_dim = feature_dim, batch_size=1, MAX_DEGREE=2, latent_dim_exp = latent_dim_exp, kl_weight = 0.00001)
 
-        suffix = 'no'
-        #suffix = 'enhanced'
+        suffix = 'gcn_vae_id'
         id_net = disentangle_model_vae_id(input_dim, prefix, suffix, l_rate, True, feature_dim = feature_dim, batch_size=1, MAX_DEGREE=2, latent_dim_id = latent_dim_id,kl_weight = 0.00001)
 
         #net.train_fusion(id_net, exp_net, epoch)
@@ -89,12 +92,12 @@ if mode == 'fusion_dr':
         suffix = 'gcn_vae_exp'
         exp_net = disentangle_model_vae_exp(input_dim, prefix, suffix, l_rate, load, feature_dim = feature_dim, batch_size=1, MAX_DEGREE=2, latent_dim_exp = latent_dim_exp)
 
-        suffix = 'no'
+        suffix = 'gcn_vae_id'
         id_net = disentangle_model_vae_id(input_dim, prefix, suffix, l_rate, load, feature_dim = feature_dim, batch_size=1, MAX_DEGREE=2, latent_dim_id = latent_dim_id)
 
-        net.test_whole(id_net, exp_net,people_id=people_id)
+        #net.test_whole(id_net, exp_net,people_id=people_id)
         #net.test_interpolation(id_net, exp_net)
-        #net.test_change(id_net, exp_net)
+        net.test_change(id_net, exp_net)
 
 
 if mode == 'gcn_vae_id':
@@ -107,7 +110,7 @@ if mode == 'gcn_vae_id':
     prefix = 'disentangle'
     print('Loading {} model'.format(mode))
     if suffix == '':
-        suffix = 'real'
+        suffix = 'gcn_vae_id'
     # AE network
     
     if train:
@@ -130,7 +133,7 @@ if mode == 'gcn_vae_exp':
     input_dim = 11510*9
     # dim of per feature
     feature_dim = 9
-    latent_dim_exp = 50
+    latent_dim_exp = 25
     prefix = 'disentangle'
     print('Loading {} model'.format(mode))
     if suffix == '':

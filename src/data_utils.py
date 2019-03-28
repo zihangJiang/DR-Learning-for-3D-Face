@@ -158,9 +158,9 @@ def concate_data(data_path,data_format):
 
 if __name__ == '__main__':
     data_path = '../data/FWH'
-    data_format = 'Feature{}/face_{}.dat'
+    data_format = 'Tester_{}/face_{}.dat'
     start = True
-    data = concate_data(data_path)
+    data = concate_data(data_path, data_format)
     save_normalize_list(data[0],data)
     # meanface_data_format = '../data/Meanface/face_{}.dat'
     # meanface_data = np.vstack((np.fromfile(meanface_data_format.format(i)) - cross_id for i in range(47)))
