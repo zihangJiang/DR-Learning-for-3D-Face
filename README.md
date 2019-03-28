@@ -19,7 +19,7 @@ We can manipulate 3D face shape in expression and identity code space.
 # Usage
 
 ### Dataset
-Please download [FaceWareHouse](http://kunzhou.net/zjugaps/facewarehouse/) dataset.
+Please download [FaceWareHouse](http://kunzhou.net/zjugaps/facewarehouse/) dataset and extract it into the corresponding dir like `data/FaceWarehouse_Data`.
 
 ### Requirements
 #### 1. Basic Environment
@@ -27,11 +27,11 @@ tensorflow-gpu = 1.9.0
 Keras = 2.2.2
 openmesh
 #### 2. Requirements for Data  Processing (About Deformation Representation Feature)
-1.  We provide a python interface for obtaining ***Deformation Representation (DR) Feature***. Code are avaliable at [Here](https://github.com/QianyiWu/get_dr_py) to generate DR feature for each obj file by specific one reference mesh. After that, you can change the data_path and data_format in `src/data_utils.py`.
+1.  We provide a python interface for obtaining ***Deformation Representation (DR) Feature***. Code are avaliable at [Here](https://github.com/QianyiWu/get_dr_py) to generate DR feature for each obj file by specific one reference mesh. Replace the `get_dr.cpython-36m-x86_64-linux-gnu.so` with compiled one and run `python get_fwh_dr.py` After that, you can change the data_path and data_format in `src/data_utils.py`.
 
 2. To recover mesh from DR feature, you need to compile [get_mesh](https://github.com/QianyiWu/get_mesh_py_API), and replace the `get_mesh.cpython-36m-x86_64-linux-gnu.so` in `src` folder.
 
-3. Also, python version of [libigl](https://github.com/libigl/libigl) is needed for mesh-IO and you need to replace the `pyigl.so` in `src` folder
+3. Also, python version of [libigl](https://github.com/libigl/libigl) is needed for mesh-IO and you need to replace the `pyigl.so` in `src` folder if the current one does not match your environment.
 
 After all requirements are satisfied, you can use following command to train and test the model.
 ### Training 
