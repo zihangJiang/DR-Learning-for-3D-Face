@@ -3,7 +3,7 @@ project(my_project)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -w -shared -std=c++11")
 
-add_subdirectory(pybind11)
+add_subdirectory("pybind11")
 
 pybind11_add_module(get_dr get_dr.cpp util_3drotation_log_exp.h util_3drotation_log_exp.cpp)
 
