@@ -81,7 +81,7 @@ The `measurement.py` and `STED` folder is for computation of numerical result me
 1. if you train the model on your own dataset(for which topology is different from FaceWarehouse mesh), you have to recompute `Mean_Face.obj` and expression meshes on mean face as mentioned in our paper and regenerate the `FWH_adj_matrix.npz` in `data/disentagle` folder using `src/igl_test.py`.
 2. We will release srcipts for data augmentation method metioned in our paper. You could put the augmented interpolated data in `data/disentangle/Interpolated_results`  
 3. Currently we have fully tested this package on Ubuntu 16.04 LTS environment with CUDA 9.0. Windows and MacOS are not ensured working.
-4. Errors like `Unknown CMake command "pybind11_add_module"` you may encounter while building [get_mesh] and [get_dr] can be solved by 
+4. Errors like `Unknown CMake command "pybind11_add_module"` you may encounter while building [get_mesh](https://github.com/QianyiWu/get_mesh_py_API) and [get_dr](https://github.com/QianyiWu/get_dr_py) can be solved by 
 ```bash
 git submodule init
 git submodule update --recursive
