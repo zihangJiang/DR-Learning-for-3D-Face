@@ -92,11 +92,11 @@ Please cite the following papers if it helps your research:
 
 <a href="https://arxiv.org/abs/1902.09887">Disentangled Representation Learning for 3D Face Shape</a>
 
-    @inproceedings{Jiang2019Disentangled
+    @inproceedings{Jiang2019Disentangled,
           title={Disentangled Representation Learning for 3D Face Shape},
-          author={Jiang, Zi-Hang and Wu, Qianyi and Chen, Keyu and Zhang, Juyong}
+          author={Jiang, Zi-Hang and Wu, Qianyi and Chen, Keyu and Zhang, Juyong},
           booktitle={IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
-          year={2019},
+          year={2019}
     }
 
 # Acknowledgement
