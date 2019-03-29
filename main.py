@@ -115,7 +115,7 @@ if mode == 'gcn_vae_id':
     
     if train:
         net = disentangle_model_vae_id(input_dim, prefix, suffix, l_rate, load, feature_dim = feature_dim, batch_size=1, MAX_DEGREE=2, kl_weight = 0.00001,latent_dim_id = latent_dim_id)
-        #net.special_train(epoch)
+        net.special_train(epoch)
         net.train(epoch)
         
         
