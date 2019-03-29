@@ -392,8 +392,8 @@ class disentangle_model_vae_id(gcn_dis_model):
     def train(self, epoch):
         def get_interpolate_data(prefix, num = 2000):
             if prefix == 'disentangle':
-                interpolate_data = np.vstack(batch_change(np.fromfile('data/{}/real_data/{}.dat'.format(prefix, i))) for i in range(num))
-                #interpolate_data = np.vstack(batch_change(np.fromfile('data/{}/Interpolated_results/interpolated_{}.dat'.format(prefix, i))) for i in range(num))
+                #interpolate_data = np.vstack(batch_change(np.fromfile('data/{}/real_data/{}.dat'.format(prefix, i))) for i in range(num))
+                interpolate_data = np.vstack(batch_change(np.fromfile('data/{}/Interpolated_results/interpolated_{}.dat'.format(prefix, i))) for i in range(num))
             else:
                 interpolate_data = np.vstack(np.fromfile('data/{}/Interpolated_results/interpolated_{}.dat'.format(prefix, i)) for i in range(num))
                 mean_inter = np.mean(interpolate_data, axis = 0)
