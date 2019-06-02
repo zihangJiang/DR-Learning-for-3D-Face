@@ -6,12 +6,17 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import math
+import openmesh as om
+import scipy.sparse as sp
+from tqdm import tqdm
 # Preprocessing config
 change_length = 11510
 #change_length = 3931
 unit = 9
 delta = np.array([1,0,0,1,0,1,0,0,0])
 cross_id = np.tile(delta, change_length)
+epsilon = 1e-4
 def batch_change(data):
     '''
     to change the data by divide it to some 'unit'
@@ -85,8 +90,7 @@ def save_normalize_list(array, data, suffix = 'disentangle', a = 0.9 ,epsilon = 
     np.save('../data/{}/max_data'.format(suffix),M_list)
     np.save('../data/{}/min_data'.format(suffix),m_list)
     return array
-
-
+    
 def denormalize_fromfile(array, M_list, m_list, a = 0.9):
     num,dim = array.shape
     for i in range(dim):
@@ -94,8 +98,6 @@ def denormalize_fromfile(array, M_list, m_list, a = 0.9):
         m = m_list[i]
         array[:, i] = (array[:,i]+a)*(M-m)/(2*a)+m
     return array
-
-
 
 def normalize_fromfile(array, M_list, m_list, a = 0.9):
     num,dim = array.shape
@@ -155,17 +157,54 @@ def concate_data(data_path,data_format):
     train_data.extend(test_data)
     return np.vstack(train_data)
      
+def polar_weights(D, bound = (0.5,1.2)):
+    r = np.random.uniform(bound[0], bound[1])
+    weights = np.empty(D)
+    theta = np.empty(D-1)
+    for i in range(D):
+        weights[i] = r
+
+    for i in range(D-1):
+        theta[i] = np.random.uniform(epsilon,math.pi/2.0)
+        weights[i] = weights[i]*math.cos(theta[i])
+
+    for i in range(D):
+        for j in range(0,i):
+            weights[i] = weights[i]*math.sin(theta[j])
+    return weights
+
+def interpolate(data, Dimension, Interpolate_num=1):
+    Num = len(data)
+    Index = np.random.randint(0,Num,Dimension)
+    meta_data = []
+    interpolate_data = []
+    for i in range(Dimension):
+        meta_data.append(data[Index[i]])
+
+    for i in range(Interpolate_num):
+        weights = polar_weights(Dimension)
+        a=np.zeros(len(data[Index[0]]))
+        for d in range(Dimension):
+            a = a+meta_data[d]*weights[d]
+
+        interpolate_data.append(a)
+    
+    return interpolate_data
+
 
 if __name__ == '__main__':
     data_path = '../data/FWH'
     data_format = 'Tester_{}/face_{}.dat'
-    start = True
     data = concate_data(data_path, data_format)
     save_normalize_list(data[0],data)
     # meanface_data_format = '../data/Meanface/face_{}.dat'
     # meanface_data = np.vstack((np.fromfile(meanface_data_format.format(i)) - cross_id for i in range(47)))
     # np.save('../data/disentangle/MeanFace_data', meanface_data)
+    #data_format = 'Tester_{}/shape_{}.obj'
 
-
-
-    
+    # train_data = np.load('../data/disentangle/train_data.npy')
+    # test_data = np.load('../data/disentangle/test_data.npy')
+    # inter_data = np.vstack(np.fromfile('../data/disentangle/Interpolated_results/interpolated_{}.dat'.format(i))-cross_id for i in range(5000))
+    # whole_data = np.vstack((train_data, test_data, inter_data))
+    # whole_data = np.vstack((train_data, test_data))
+    # save_normalize_list(whole_data[0],whole_data)

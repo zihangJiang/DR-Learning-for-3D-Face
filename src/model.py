@@ -3,10 +3,11 @@
 @author: jzh
 """
 import numpy as np, keras.backend as K
+import tensorflow as tf
 from keras.optimizers import Adam
 from keras.layers import Input
 from keras.models import Model
-from src.VAE import get_gcn_dis_networks, get_gcn, get_gcn_vae_id, get_gcn_vae_exp
+from src.VAE import get_gcn, get_gcn_vae_id, get_gcn_vae_exp
 from src.data_utils import normalize_fromfile, denormalize_fromfile, data_recover, batch_change
 from src.get_mesh import get_mesh
 import scipy.sparse as sp
@@ -72,7 +73,7 @@ def chebyshev_polynomial(X, k):
         
 class gcn_dis_model(object):
 
-    def __init__(self, input_dim, prefix, suffix, lr, load, feature_dim=9, latent_dim_id=50, latent_dim_exp=25, kl_weight=0.000005, batch_size=1, MAX_DEGREE=2):
+    def __init__(self, input_dim, prefix, suffix, lr, load, feature_dim=9, latent_dim_id=50, latent_dim_exp=25, kl_weight=0.000005,weight_decay = 0.00001, batch_size=1, MAX_DEGREE=2):
         self.input_dim = input_dim
         self.prefix = prefix
         self.suffix = suffix
@@ -83,219 +84,12 @@ class gcn_dis_model(object):
         self.v = int(input_dim / feature_dim)
         self.hidden_dim = 300
         self.lr = lr
-        self.kl_weight = kl_weight
+        self.kl_weight = K.variable(kl_weight)
         self.M_list = np.load(('data/{}/max_data.npy').format(self.prefix))
         self.m_list = np.load(('data/{}/min_data.npy').format(self.prefix))
         self.batch_size = batch_size
+        self.weight_decay = K.variable(weight_decay)
         self.build_model(MAX_DEGREE)
-
-    def save_gcn_models(self):
-        self.gcn_comp.save_weights(('model/gcn_comp_{}{}.h5').format(self.prefix, self.suffix))
-
-    def load_gcn_models(self):
-        self.gcn_comp.load_weights(('model/gcn_comp_{}{}.h5').format(self.prefix, self.suffix))
-        
-    def save_models(self):
-        self.encoder_id.save_weights(('model/encoder_id_{}{}.h5').format(self.prefix, self.suffix))
-        self.encoder_exp.save_weights(('model/encoder_exp_{}{}.h5').format(self.prefix, self.suffix))
-        self.decoder_id.save_weights(('model/decoder_id_{}{}.h5').format(self.prefix, self.suffix))
-        self.decoder_exp.save_weights(('model/decoder_exp_{}{}.h5').format(self.prefix, self.suffix))
-
-    def load_models(self):
-        print(self.encoder_id.trainable_weights)
-        self.encoder_id.load_weights(('model/encoder_id_{}{}.h5').format(self.prefix, self.suffix))
-        self.encoder_exp.load_weights(('model/encoder_exp_{}{}.h5').format(self.prefix, self.suffix))
-        self.decoder_id.load_weights(('model/decoder_id_{}{}.h5').format(self.prefix, self.suffix))
-        self.decoder_exp.load_weights(('model/decoder_exp_{}{}.h5').format(self.prefix, self.suffix))
-        
-    def build_model(self, MAX_DEGREE):
-        SYM_NORM = True
-        A = sp.load_npz(('data/{}/FWH_adj_matrix.npz').format(self.prefix))
-        L = normalized_laplacian(A, SYM_NORM)
-        T_k = chebyshev_polynomial(rescale_laplacian(L), MAX_DEGREE)
-        support = MAX_DEGREE + 1
-
-        
-        self.gcn_comp, self.encoder,self.encoder_id, self.encoder_exp, self.decoder_id, self.decoder_exp,\
-        z_id, z_exp, reconstruction_loss, kl_loss_id, kl_loss_exp=\
-        get_gcn_dis_networks(T_k, support, batch_size=self.batch_size, feature_dim=self.feature_dim, v=self.v, \
-                               latent_dim_id=self.latent_dim_id, latent_dim_exp=self.latent_dim_exp, input_dim=self.input_dim, hidden_dim = self.hidden_dim)
-        
-        kl_loss = kl_loss_id + kl_loss_exp
-        
-        self.neutral_face = Input(shape=(self.input_dim,))
-        self.mean_exp = Input(shape=(self.input_dim,))
-        self.real = self.encoder.get_input_at(0)
-        ratio = K.variable(self.M_list - self.m_list)
-        s = K.variable(self.m_list + self.M_list)
-        
-        
-        
-        # Loss
-        #reconstruction_loss = K.mean(K.abs(reconstruction_loss * ratio - 0.9 * s)) / 1.8
-        
-        if self.feature_dim == 9:
-            self.reconstruction_loss = K.mean(K.abs((self.real - self.gcn_comp([self.neutral_face, self.mean_exp])) * ratio )) / 1.8
-            self.id_loss = K.mean(K.abs((self.real -self.decoder_id(z_id) - self.neutral_face) * ratio))
-            self.id_loss_ratio = K.mean(K.abs((self.real -self.decoder_id(z_id) - self.neutral_face) * ratio - 0.9 * s))/ 1.8
-            self.exp_loss = K.mean(K.abs((self.decoder_exp(z_exp) - self.mean_exp) * ratio))
-        else:
-            self.reconstruction_loss = K.mean(K.square((self.real - self.gcn_comp([self.neutral_face, self.mean_exp])) * ratio ))
-            self.id_loss = K.mean(K.square((self.real -self.decoder_id(z_id) - self.neutral_face) * ratio))
-            self.id_loss_ratio = K.mean(K.square((self.real -self.decoder_id(z_id) - self.neutral_face) * ratio - 0.9 * s))/ 1.8
-            self.exp_loss = K.mean(K.square((self.decoder_exp(z_exp) - self.mean_exp) * ratio))
-            
-        self.vae_loss = self.kl_weight * kl_loss
-
-        self.loss = self.vae_loss + self.id_loss + self.exp_loss + 0.5 * self.reconstruction_loss
-        
-        # weight
-        weights = self.encoder.trainable_weights + self.decoder_exp.trainable_weights + self.decoder_id.trainable_weights + self.gcn_comp.trainable_weights
-        
-        # updates
-        training_updates = (Adam(lr=self.lr)).get_updates(weights, [], self.loss)
-        
-        # train and test functions
-        self.train_func = K.function([self.real, self.mean_exp, self.neutral_face], 
-                                     [self.reconstruction_loss, kl_loss_exp, kl_loss_id,self.id_loss, self.id_loss_ratio, self.exp_loss, self.loss], 
-                                     training_updates)
-        self.test_func = K.function([self.real, self.mean_exp, self.neutral_face],
-                                    [self.reconstruction_loss, kl_loss_exp, kl_loss_id, self.id_loss, self.id_loss_ratio, self.exp_loss, self.loss])
-        
-
-        if self.load:
-            self.load_models()
-            self.load_gcn_models()
-
-    def vague_training(self, epoch):
-        data_list = [normalize_fromfile(np.load(('data/{}/train_data/{}.npy').format(self.prefix, i)), self.M_list, self.m_list) for i in range(12)]
-        test_data_list = [normalize_fromfile(np.load(('data/{}/test_data/test_{}.npy').format(self.prefix, i)), self.M_list, self.m_list) for i in range(12)]
-        id_label = normalize_fromfile(np.load(('data/{}/train_data.npy').format(self.prefix))[np.arange(12)*12],self.M_list, self.m_list)
-        log = np.zeros((epoch,))
-        constant_list = np.array([[i,j] for i in range(12) for j in range(data_list[i].shape[0])])
-        train_sample_len = len(constant_list)
-        for i in range(epoch):
-
-            np.random.shuffle(constant_list)
-            for index,j in enumerate(constant_list):
-
-                people_with_emotion = data_list[j[0]][j[1]:j[1]+1]
-                people_neutral_face = id_label[j[0]:j[0]+1]
-                #exp = people_with_emotion - people_neutral_face
-                #exp = normalize_fromfile(denormalize_fromfile(people_with_emotion, self.M_list, self.m_list) - denormalize_fromfile(people_neutral_face, self.M_list, self.m_list), self.M_list, self.m_list)
-                exp = people_with_emotion - people_neutral_face - 0.9*( self.M_list+ self.m_list)/( self.M_list- self.m_list)
-
-                k = np.random.randint(0, 12)
-                l = np.random.randint(0, test_data_list[k].shape[0])
-                test_emotion = test_data_list[k][l:l+1]
-                test_neutral_face = id_label[k:k+1]
-                test_exp = test_emotion - test_neutral_face- 0.9*( self.M_list+ self.m_list)/( self.M_list- self.m_list)
-
-                
-                err_re, err_kl_exp, err_kl_id, err_id, err_exp, err_total = self.train_func([people_with_emotion, exp, people_neutral_face])
-                eval_re, eval_kl_exp, eval_kl_id, eval_id, eval_exp, eval_total = self.test_func([test_emotion, test_exp, test_neutral_face])
-                print(('Epoch: {:3}, Process: {:3}%, people: {:3}, total_loss: {:8.5f}').format(i, int(100*index/train_sample_len), j[0], err_total))
-                print(('id_kld: {:8.4f}, exp_kld: {:8.4f}, id_loss: {:8.4f}, exp_loss: {:8.4f}, re_loss: {:8.4f}').format(err_kl_id, err_kl_exp, err_id, err_exp, err_re))
-                print(('id_kl_eval: {:8.4f}, exp_kl_eval: {:8.4f}, id_eval: {:8.4f}, exp_eval: {:8.4f}, re_eval: {:8.4f}').format(eval_kl_id, eval_kl_exp, eval_id, eval_exp, eval_re))
-                log[i] += err_total
-
-        np.save('log', log)
-        self.save_models()
-        self.save_gcn_models()
-
-    def train(self, epoch):
-        data_array = np.load(('data/{}/train_data.npy').format(self.prefix))
-        test_array = np.load(('data/{}/test_data.npy').format(self.prefix))
-        mean_exp = np.load(('data/{}/MeanFace_data.npy').format(self.prefix))
-        normalize_fromfile(data_array, self.M_list, self.m_list)
-        normalize_fromfile(mean_exp, self.M_list, self.m_list)
-        normalize_fromfile(test_array, self.M_list, self.m_list)
-        log = np.zeros((epoch,))
-        batch_size = self.batch_size
-        train_people_num = 130
-        constant_list = np.arange(train_people_num * 47)
-        for i in range(epoch):
-            k = np.random.randint(1, 11)
-            test_emotion = data_array[train_people_num * 47 + k * 47 - 47:train_people_num * 47 + k * 47]
-            np.random.shuffle(constant_list)
-            for j in range(int(train_people_num * 47 / batch_size)):
-                batch_index = constant_list[j * batch_size:j * batch_size + batch_size]
-                exp_index = batch_index % 47
-                
-                netural_index = batch_index - exp_index
-                #exp_index = np.array([22])
-                batch_index = netural_index + exp_index
-                people_with_emotion = data_array[batch_index]
-                people_neutral_face = data_array[netural_index]
-                people_exp = mean_exp[exp_index]
-                err_re, err_kl_exp, err_kl_id, err_id, err_id_r, err_exp, err_total = self.train_func([people_with_emotion, people_exp, people_neutral_face])
-                t = np.random.randint(1, 46)
-
-                eval_re, eval_kl_exp, eval_kl_id, eval_id, eval_id_r, eval_exp, eval_total = self.test_func([test_emotion[t:t+self.batch_size], mean_exp[t:t+self.batch_size], np.repeat(test_emotion[:1], self.batch_size, axis=0)])
-
-                print(('Epoch: {:3}, Process: {:3}%, total_loss: {:8.5f}').format(i, int(100*j/(train_people_num * 47)), err_total))
-                print(('id_kld: {:8.4f}, exp_kld: {:8.4f}, id_loss: {:8.4f}, exp_loss: {:8.4f}, re_loss: {:8.4f}').format(err_kl_id, err_kl_exp, err_id, err_exp, err_re))
-                print(('id_kl_eval: {:8.4f}, exp_kl_eval: {:8.4f}, id_eval: {:8.4f}, exp_eval: {:8.4f}, re_eval: {:8.4f}').format(eval_kl_id, eval_kl_exp, eval_id, eval_exp, eval_re))
-                log[i] += err_total
-        np.save('log', log)
-        self.save_models()
-        self.save_gcn_models()
-        
-    def test(self, limit=5, filename='test', people_id=142):
-        data = np.load(('data/{}/{}_data/Feature{}.npy').format(self.prefix, filename, people_id))
-        data_array = data.copy()
-        mean_exp = np.load(('data/{}/MeanFace_data.npy').format(self.prefix))
-        normalize_fromfile(data_array, self.M_list, self.m_list)
-        normalize_fromfile(mean_exp, self.M_list, self.m_list)
-        encode_data_mean_id, encode_data_mean_exp, encode_data_log_var_id, encode_data_log_var_exp, encode_data_id, encode_data_exp= self.encoder.predict(data_array, batch_size = self.batch_size)
-        np.save(('data/encode_data/{}_mean_id_{}').format(self.prefix, self.suffix), encode_data_mean_id)
-        np.save(('data/encode_data/{}_var_id_{}').format(self.prefix, self.suffix), encode_data_log_var_id)
-        np.save(('data/encode_data/{}_sampel_id_{}').format(self.prefix, self.suffix), encode_data_id)
-        np.save(('data/encode_data/{}_mean_exp_{}').format(self.prefix, self.suffix), encode_data_mean_exp)
-        np.save(('data/encode_data/{}_var_exp_{}').format(self.prefix, self.suffix), encode_data_log_var_exp)
-        np.save(('data/encode_data/{}_sampel_exp_{}').format(self.prefix, self.suffix), encode_data_exp)
-        feature_id = data_array - self.decoder_id.predict(encode_data_mean_id, batch_size = self.batch_size)
-        feature_exp = self.decoder_exp.predict(encode_data_mean_exp, batch_size = self.batch_size)
-        
-        feature_rec = denormalize_fromfile(self.gcn_comp.predict([feature_id, feature_exp],batch_size=self.batch_size), self.M_list, self.m_list)# + 0.9 * (self.m_list + self.M_list) / (self.M_list - self.m_list)
-        denormalize_fromfile(feature_exp, self.M_list, self.m_list)
-        denormalize_fromfile(feature_id, self.M_list, self.m_list)
-        import shutil, os
-        shutil.rmtree('data/mesh')
-        os.mkdir('data/mesh')
-        for i in (0, 1, 2, 22, 37, 39):
-            V2M2(get_mesh(ref_name, data_recover(feature_id[i])), ('data/mesh/id_{}_{}.obj').format(self.prefix, i))
-            V2M2(get_mesh(ref_name, data_recover(feature_exp[i])), ('data/mesh/exp_{}_{}.obj').format(self.prefix, i))
-            #V2M2(get_mesh(ref_name, data_recover(feature_exp[i] + feature_id[i])), ('data/mesh/plus_{}_{}.obj').format(self.prefix, i))
-            V2M2(get_mesh(ref_name, data_recover(feature_rec[i])), ('data/mesh/rec_{}_{}.obj').format(self.prefix, i))
-            V2M2(get_mesh(ref_name, data_recover(data[i])), ('data/mesh/ori_{}_{}.obj').format(self.prefix, i))
-
-    def test_whole(self):
-        filename = 'test'
-        import shutil, os
-        shutil.rmtree('data/mesh')
-        os.mkdir('data/mesh')
-        os.mkdir('data/mesh/exp')
-        os.mkdir('data/mesh/ori')
-        os.mkdir('data/mesh/id')
-        for people_id in range(141, 151):
-            os.mkdir(('data/mesh/exp/Feature{}').format(people_id))
-            data = np.load(('data/{}/{}_data/Feature{}.npy').format(self.prefix, filename, people_id))
-            data_array = data.copy()
-            normalize_fromfile(data_array, self.M_list, self.m_list)
-            encode_data_mean_id, encode_data_mean_exp, encode_data_log_var_id, encode_data_log_var_exp, encode_data_id, encode_data_exp = self.encoder.predict(data_array)
-            feature_id = denormalize_fromfile(data_array - self.decoder_id.predict(encode_data_mean_id), self.M_list, self.m_list)
-            feature_exp = denormalize_fromfile(self.decoder_exp.predict(encode_data_mean_exp), self.M_list, self.m_list)
-            feature_rec = denormalize_fromfile((self.gcn_comp.predict([data_array - self.decoder_id.predict(encode_data_mean_id, batch_size=self.batch_size)\
-                                                                       , self.decoder_exp.predict(encode_data_mean_exp, batch_size=self.batch_size)],batch_size=self.batch_size)) + 0.9 * (self.m_list + self.M_list) / (self.M_list - self.m_list), self.M_list, self.m_list)
-
-            for i in range(47):
-                V2M2(get_mesh(ref_name, data_recover(data[i])), ('data/mesh/ori/Feature{}/{}.obj').format(people_id, i))
-                V2M2(get_mesh(ref_name, data_recover(feature_exp[i])), ('data/mesh/exp/Feature{}/{}.obj').format(people_id, i))
-                V2M2(get_mesh(ref_name, data_recover(feature_rec[i])), ('data/mesh/rec_{}_{}.obj').format(self.prefix, i))
-                V2M2(get_mesh(ref_name, data_recover(data[i] - feature_id[i])), ('data/mesh/ori/Feature{}/{}.obj').format(people_id, i))
-
-
 
 class disentangle_model_vae_id(gcn_dis_model):
 
@@ -309,32 +103,25 @@ class disentangle_model_vae_id(gcn_dis_model):
         self.neutral_face = Input(shape=(self.input_dim,))
         real = self.gcn_vae_id.get_input_at(0)
         ratio = K.variable(self.M_list - self.m_list)
-        # L2 when xyz, L1 when rimd
-        # TODO
         if self.feature_dim == 9:
-            ###self.id_loss = K.mean(K.abs((real - self.neutral_face - self.gcn_vae_id(real)) * ratio - 0.9 * s)) / 1.8
-            #self.id_loss = K.mean(K.square((real - self.neutral_face - self.gcn_vae_id(real)) * ratio - 0.9 * s))
-            self.id_loss = K.mean(K.abs((self.neutral_face - self.gcn_vae_id(real)) * ratio ))/1.8
-            #self.id_loss = K.mean(K.square(self.neutral_face - self.gcn_vae_id(real)))
+            self.id_loss = K.mean(K.abs((self.neutral_face - self.gcn_vae_id(real)) * ratio))/1.8
         else:
-            #self.id_loss = K.mean(K.square((real - self.neutral_face - self.gcn_vae_id(real)) * ratio - 0.9 * s)) * 100
-            #self.id_loss = K.mean(K.square((self.neutral_face - self.gcn_vae_id(real)) * ratio)) * 100
             ori_mesh = K.reshape(((self.neutral_face - self.gcn_vae_id(real)) * ratio), (self.batch_size, -1, 3))
             self.id_loss = K.mean(K.sqrt(K.sum(K.square(ori_mesh) ,axis=-1)))/1.8
             
         
         
-        weights = self.gcn_vae_id.trainable_weights
+        weights = self.gcn_vae_id.trainable_weights#+[self.scalar]
         self.regularization_loss = 0
         for w in weights:
             #print(w)
-            if self.feature_dim == 9:#0.000002
-                self.regularization_loss += 0.000002*  K.sum(K.square(w))
+            if self.feature_dim == 9:
+                self.regularization_loss += self.weight_decay*  K.sum(K.square(w))
             else:
-                self.regularization_loss += 0.00001*  K.sum(K.square(w))
-        self.regularization_loss += 0.000005*  K.sum(K.square(weights[-2])) + 0.000005*  K.sum(K.square(weights[-1]))
+                self.regularization_loss += 0.00002*  K.sum(K.square(w))
         self.loss = self.id_loss + self.kl_weight * self.kl_loss + self.regularization_loss
-        training_updates = (Adam(lr=self.lr)).get_updates(weights, [], self.loss)
+        self.opt = Adam(lr=self.lr)
+        training_updates = (self.opt).get_updates(weights, [], self.loss)
         self.train_func = K.function([real, self.neutral_face], [self.id_loss, self.loss, self.kl_loss, self.regularization_loss], training_updates)
         self.test_func = K.function([real, self.neutral_face], [self.id_loss, self.loss, self.kl_loss, self.regularization_loss])
         if self.load:
@@ -344,27 +131,33 @@ class disentangle_model_vae_id(gcn_dis_model):
         self.gcn_vae_id.save_weights(('model/gcn_vae_id_model/gcn_vae_id{}{}.h5').format(self.prefix, self.suffix))
         self.encoder.save_weights(('model/gcn_vae_id_model/encoder_id_{}{}.h5').format(self.prefix, self.suffix))
         self.decoder.save_weights(('model/gcn_vae_id_model/decoder_id_{}{}.h5').format(self.prefix, self.suffix))
-
     def load_models(self):
         self.gcn_vae_id.load_weights(('model/gcn_vae_id_model/gcn_vae_id{}{}.h5').format(self.prefix, self.suffix))
-        
-        
+
         
     def code_bp(self, epoch):
-
+        #test_array = np.vstack(batch_change(np.fromfile('data/disentangle/real_data/{}.dat'.format(i))) for i in range(287))
         test_array = np.load('data/{}/test_data.npy'.format(self.prefix))[47*np.arange(10)]
+        frt = np.loadtxt('src/front_part_v.txt', dtype = int)
+        mask = np.zeros(11510)
+        mask[frt] = 1
         normalize_fromfile(test_array, self.M_list, self.m_list)
-        num = 1
+        num = 0
         target_feature = test_array[num:num+1]
         #x = [0,2,6,7,8]
-        
+        K.set_learning_phase(0)
         start = self.encoder.predict(target_feature, batch_size = self.batch_size)
         code = K.variable(start[0])
+
         target_feature_holder = Input(shape=(self.input_dim, ))
+        mask = K.variable(np.repeat(mask, 9))
+
+        ratio = K.variable(self.M_list - self.m_list)
+        cross_id = K.variable(np.tile(np.array([1,0,0,1,0,1,0,0,0]), 11510))
+
+
         target = self.decoder(code)
-        
-        loss = K.mean(K.abs(K.variable(self.M_list - self.m_list)*(target - target_feature_holder)))/1.8#+  K.mean(K.square(target - target_feature_holder))
-        #loss = K.mean(K.square(target - target_feature_holder))
+        loss = K.mean(K.abs(ratio*(target - target_feature_holder)))/1.8
         lr = self.lr
         for circle in range(10):
             training_updates = (Adam(lr=lr)).get_updates([code], [], loss)
@@ -381,6 +174,7 @@ class disentangle_model_vae_id(gcn_dis_model):
         start_id = denormalize_fromfile(start_norm, self.M_list, self.m_list)
         result_id = denormalize_fromfile(result_mesh, self.M_list, self.m_list)
         denormalize_fromfile(target_feature, self.M_list, self.m_list)
+
         import shutil, os
         shutil.rmtree('data/mesh')
         os.mkdir('data/mesh')
@@ -399,57 +193,68 @@ class disentangle_model_vae_id(gcn_dis_model):
                 mean_inter = np.mean(interpolate_data, axis = 0)
                 interpolate_data = interpolate_data - mean_inter
             return interpolate_data
-        inter_array = get_interpolate_data(self.prefix, 1)
+        inter_array = get_interpolate_data(self.prefix, 4000)
         data_array = np.load(('data/{}/train_data.npy').format(self.prefix))
         test_array = np.load(('data/{}/test_data.npy').format(self.prefix))
         mean_exp = np.load(('data/{}/MeanFace_data.npy').format(self.prefix))
 
-        normalize_fromfile(inter_array, self.M_list, self.m_list)
-        normalize_fromfile(data_array, self.M_list, self.m_list)
         normalize_fromfile(test_array, self.M_list, self.m_list)
         normalize_fromfile(mean_exp, self.M_list, self.m_list)
-        log = np.zeros((epoch*6580,))
-        test_log = np.zeros((epoch*6580,))
-        constant_list = np.arange(6580)
+        normalize_fromfile(data_array, self.M_list, self.m_list)
+        normalize_fromfile(inter_array, self.M_list, self.m_list)
+
+        ITS = data_array.shape[0]//self.batch_size
+        log = np.zeros((epoch*ITS,))
+        test_log = np.zeros((epoch*ITS,))
+        constant_list = np.arange(data_array.shape[0])
         inter_list = np.arange(inter_array.shape[0])
         display_step = 50
         for i in range(epoch):
 
             np.random.shuffle(constant_list)
             np.random.shuffle(inter_list)
-            for index, j in enumerate(constant_list):
-                l = np.random.randint(0, 47)
+            # for index, j in enumerate(constant_list):
+            for index, j in enumerate(zip(*[iter(constant_list)]*self.batch_size)):
+                # l = np.random.randint(0, 47)
+                l = np.random.randint(0,47,self.batch_size)
+                inter_sample = np.random.randint(0,inter_array.shape[0],self.batch_size)
                 #l = 1
+                j = np.array(j)
                 C_exp = j % 47
-                C_netural = j - C_exp
-                people_with_emotion = data_array[j:j + 1]
-                people_neutral_face = data_array[C_netural:C_netural + 1]
-                C_int = inter_list[index% inter_array.shape[0]]
-                inter_people = inter_array[C_int: C_int+1]
-                m = np.random.randint(0, 47)
-                inter_people_emotion = inter_people + mean_exp[m:m+1] + 0.9*(self.M_list + self.m_list)/(self.M_list - self.m_list)
+                C_neutral = j - C_exp
+                people_with_emotion = data_array[j]
+                people_neutral_face = data_array[C_neutral]
+                C_int = inter_list[(index*self.batch_size) %inter_array.shape[0]: (index * self.batch_size)%inter_array.shape[0]+self.batch_size]
+                inter_people = inter_array[C_int]
+                m = np.random.randint(0, 47, inter_people.shape[0])
+                inter_people_emotion = inter_people + mean_exp[m] + 0.9*(self.M_list + self.m_list)/(self.M_list - self.m_list)
+                K.set_learning_phase(1)
+                K.set_value(self.opt.lr, self.lr*10)
                 err_re_inter, err_total_inter, err_kl, err_regular = self.train_func([inter_people_emotion, inter_people])
-                
+                K.set_value(self.opt.lr, self.lr*0.1)
                 err_re_emoti, err_total_emoti, err_kl, err_regular = self.train_func([people_with_emotion, people_neutral_face])
                 
                 err_re = err_re_emoti#(err_re_inter + err_re_emoti)/2
                 err_total = (err_total_inter + err_total_emoti)/2
                 
-                k = np.random.randint(1, 11)
-                test_emotion = test_array[k * 47 - 47:k * 47]
-                
-                eval_re, eval_total, eval_kl, eval_regular = self.test_func([test_emotion[l:l + 1], test_emotion[:1]])
+                k = np.random.randint(0, 10*47,self.batch_size)
+                test_emotion = test_array[k]
+                test_neutral = test_array[k-(k%47)]
+                K.set_learning_phase(0)
+                eval_re, eval_total, eval_kl, eval_regular = self.test_func([test_emotion, test_neutral])
                 if index%display_step == 0:
-                    print(('Epoch: {:3}, people: {:4}, total_loss: {:8.4f}, re_loss: {:8.4f}, kl_loss: {:8.4f}, regular: {:8.4f}, eval: {:8.4f}, eval_re: {:8.4f}, eval_kl: {:8.4f}').format(i, j, err_total, err_re, err_kl, err_regular, eval_total, eval_re, eval_kl))
-                log[i*6580 + index] += err_re
-                test_log[i*6580 + index] += eval_re
+                    print(('Epoch: {:3}, total_loss: {:8.4f}, re_loss: {:8.4f}, kl_loss: {:8.4f}, regular: {:8.4f}, eval: {:8.4f}, eval_re: {:8.4f}, eval_kl: {:8.4f}').format(i, err_total, err_re, err_kl, err_regular, eval_total, eval_re, eval_kl))
+                log[i*ITS + index] += err_re
+                test_log[i*ITS + index] += eval_re
             np.save('log', log)
             np.save('testlog', test_log)
         self.save_models()
     def special_train(self, epoch):
         def get_interpolate_data(prefix, num = 2000):
             if prefix == 'disentangle':
-                interpolate_data = np.vstack(batch_change(np.fromfile('data/{}/real_data/{}.dat'.format(prefix, i))) for i in range(num))
+                #interpolate_data = np.vstack(batch_change(np.fromfile('data/{}/real_data/{}.dat'.format(prefix, i))) for i in range(num))
+                interpolate_data = np.vstack(batch_change(np.fromfile('data/{}/Interpolated_results/interpolated_{}.dat'.format(prefix, i))) for i in range(num))
+
             else:
                 interpolate_data = np.vstack(np.fromfile('data/{}/real_data/{}.dat'.format(prefix, i)) for i in range(num))
                 mean_inter = np.mean(interpolate_data, axis = 0)
@@ -457,11 +262,12 @@ class disentangle_model_vae_id(gcn_dis_model):
             return interpolate_data
         data_array = np.load(('data/{}/train_data.npy').format(self.prefix))[47*np.arange(140)]
         test_array = np.load(('data/{}/test_data.npy').format(self.prefix))[47*np.arange(10)]
-        inter_array = get_interpolate_data(self.prefix,287)
+        inter_array = get_interpolate_data(self.prefix)
         normalize_fromfile(inter_array, self.M_list, self.m_list)
         normalize_fromfile(data_array, self.M_list, self.m_list)
         normalize_fromfile(test_array, self.M_list, self.m_list)
-        
+        data_array = np.concatenate([data_array, inter_array])
+
         log = np.zeros((epoch,))
         test_log = np.zeros((epoch,))
         constant_list = np.arange(data_array.shape[0])
@@ -472,14 +278,16 @@ class disentangle_model_vae_id(gcn_dis_model):
         for i in range(epoch):
 
             np.random.shuffle(constant_list)
-            for index,j in enumerate(constant_list):
-                k = np.random.randint(1, 11)
-                test_emotion = test_array[k -1:k]
-                people_with_emotion = data_array[j:j + 1]
+            for index, j in enumerate(zip(*[iter(constant_list)]*self.batch_size)):
+                test_idx = np.random.randint(0,10,self.batch_size)
+                test_emotion = test_array[test_idx]
+                people_with_emotion = data_array[np.array(j)]
+                K.set_learning_phase(1)
                 err_re, err_total, err_kl, err_regular = self.train_func([people_with_emotion, people_with_emotion])
+                K.set_learning_phase(0)
                 eval_re, eval_total, eval_kl, eval_regular = self.test_func([test_emotion, test_emotion])
                 if index%display_step == 0:
-                    print(('Epoch: {:3}, people: {:4}, total_loss: {:8.4f}, re_loss: {:8.4f}, kl_loss: {:8.4f}, regular: {:8.4f}, eval: {:8.4f}, eval_re: {:8.4f}, eval_kl: {:8.4f}').format(i, j, err_total, err_re, err_kl, err_regular, eval_total, eval_re, eval_kl))
+                    print(('Epoch: {:3}, total_loss: {:8.4f}, re_loss: {:8.4f}, kl_loss: {:8.4f}, regular: {:8.4f}, eval: {:8.4f}, eval_re: {:8.4f}, eval_kl: {:8.4f}').format(i, err_total, err_re, err_kl, err_regular, eval_total, eval_re, eval_kl))
                 log[i] += err_total
                 test_log[i] += eval_total
             np.save('log', log)
@@ -493,7 +301,6 @@ class disentangle_model_vae_id(gcn_dis_model):
         normalize_fromfile(data_array, self.M_list, self.m_list)
         err_re, err_total, err_kl, _ = self.test_func([data_array[24:25], data_array[:1]])
         print(err_re)
-        #encode_data = self.encoder.predict(data_array, batch_size=self.batch_size)
         feature_id = denormalize_fromfile(self.gcn_vae_id.predict(data_array, batch_size=self.batch_size), self.M_list, self.m_list)
         import shutil, os
         shutil.rmtree('data/mesh')
@@ -558,9 +365,7 @@ class disentangle_model_vae_exp(gcn_dis_model):
             for j in constant_list:
                 l = np.random.randint(0, 47)
                 C_exp = j % 47
-                #C_netural = j - C_exp
                 people_with_emotion = data_array[j:j + 1]
-                #people_neutral_face = data_array[C_netural:C_netural + 1]
                 exp = mean_exp[C_exp:C_exp+1]
                 err_re, err_total, err_kl = self.train_func([people_with_emotion, exp])
                 eval_re, eval_total, eval_kl = self.test_func([test_emotion[l:l + 1], mean_exp[l:l+1]])
@@ -731,9 +536,9 @@ class gcn_model(object):
             for j in range(int(train_people_num * 47 / batch_size)):
                 batch_index = constant_list[j * batch_size:j * batch_size + batch_size]
                 exp_index = batch_index % 47
-                netural_index = batch_index - exp_index
+                neutral_index = batch_index - exp_index
                 people_with_emotion = data_array[batch_index]
-                people_neutral_face = data_array[netural_index]
+                people_neutral_face = data_array[neutral_index]
                 people_exp = mean_exp[exp_index]
 
                 err_total = self.train_func([people_with_emotion, people_exp, people_neutral_face])
@@ -814,9 +619,9 @@ class gcn_model(object):
             for j in range(int(train_people_num/batch_size)):
                 batch_index = constant_list[j * batch_size:j * batch_size + batch_size]
                 #exp_index = batch_index % 47
-                #netural_index = batch_index - exp_index
+                #neutral_index = batch_index - exp_index
                 people_with_emotion = data_array[batch_index]
-                #people_neutral_face = data_array[netural_index]
+                #people_neutral_face = data_array[neutral_index]
                 #people_exp = mean_exp[exp_index]
                 k = np.random.randint(test_array.shape[0])
                 test_emotion = test_array[k :k + 1]
@@ -948,14 +753,14 @@ class gcn_model(object):
                 batch_index = constant_list[j]
                 if batch_index < 141*47:
                     exp_index = batch_index % 47
-                    netural_index = batch_index - exp_index
+                    neutral_index = batch_index - exp_index
                 else:
                     exp_index = 0
-                    netural_index = batch_index
+                    neutral_index = batch_index
                 
                 
                 people_with_emotion = data_array[batch_index:batch_index+1]
-                people_neutral_face = data_array[netural_index:netural_index +1]
+                people_neutral_face = data_array[neutral_index:neutral_index +1]
                 people_exp = mean_exp[exp_index:exp_index+1]
 
                 err_total, err_id, err_exp, err_dis, err_rec, err_regular  = train_func([people_with_emotion,people_with_emotion,people_with_emotion, people_exp, people_neutral_face])
