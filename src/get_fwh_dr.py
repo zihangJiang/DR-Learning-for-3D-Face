@@ -29,7 +29,11 @@ def generate_mean_face():
         gather_mesh = pool.map(process, range(1,151))
         mean_mesh = igl.eigen.MatrixXd((sum(gather_mesh)/len(gather_mesh)).astype(np.float64))
         igl.writeOBJ('../data/FWH/Mean_Face/shape_{}.obj'.format(i), mean_mesh, F)
-
+		write_align_mesh('../data/FWH/Mean_Face/shape_{}.obj'.format(i),
+		'../data/disentangle/Mean_Face.obj',
+		'../data/FWH/Mean_Face/shape_{}.obj'.format(i),
+		index = np.loadtxt('front_part_v.txt',dtype=int))
+		
 def generate_dr_feature():
     print("generating dr feature")
     for j in range(1,151):
