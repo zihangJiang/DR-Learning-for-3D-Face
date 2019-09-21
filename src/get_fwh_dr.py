@@ -13,7 +13,10 @@ except:
     import src.pyigl as igl
 from tqdm import tqdm
 from multiprocessing.dummy import Pool as ThreadPool
-
+change_length = 11510
+unit = 9
+delta = np.array([1,0,0,1,0,1,0,0,0])
+cross_id = np.tile(delta, change_length)
 # def generate_mean_face():
     # print("generating mean face shapes")
     # V = igl.eigen.MatrixXd()
@@ -43,7 +46,7 @@ def generate_mean_face():
     except:
         pass
     for i in range(47):
-        V2M2(get_mesh('../data/disentangle/Mean_Face.obj', mean_exp[i]), '../data/FWH/Mean_Face/shape_{}.obj'.format(i))
+        V2M2(get_mesh('../data/disentangle/Mean_Face.obj', mean_exp[i]+cross_id), '../data/FWH/Mean_Face/shape_{}.obj'.format(i), ref_name = '../data/disentangle/Mean_Face.obj')
 		write_align_mesh('../data/FWH/Mean_Face/shape_{}.obj'.format(i),
 		'../data/disentangle/Mean_Face.obj',
 		'../data/FWH/Mean_Face/shape_{}.obj'.format(i),
